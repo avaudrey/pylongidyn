@@ -2,12 +2,32 @@
 # -*- coding: utf-8 -*-
 
 """
-Python package containing an elementary vehicle dynamics model
+pylongidyn: Longitudinal Vehicle Dynamics Modeling in Python
+============================================================
+
+This package provides tools to model and analyze the longitudinal dynamics
+of electric road vehicles. It includes representations of ambient conditions,
+road profiles, continuous gearboxes and electric motors, enabling simulation
+of vehicle performance under realistic driving scenarios.
+
+Main Components
+---------------
+- rot_rpm_from_speed, rot_speed_from_rpm : Conversion utilities between rpm
+and rad/s.
+- AmbientAir : Ambient air properties and density calculation.
+- Road : Road profile handling (slopes, elevations, speed limits).
+- LinearContinuousGearbox : Gearbox model with continuous gear ratio.
+- SynchronousElectricMotor : Electric motor model with torque/power curves.
+
+Notes
+-----
+- Units are SI (Pa, °C, rpm, rad/s, m/s, N·m, W).
+- Road data must be provided as a CSV file with columns:
+  distance_m, altitude_m, speed_limit_kmh
+- More information at : https://github.com/avaudrey/pylongidyn
 
 Author: alexandre.vaudrey@pm.me
 """
-
-# TODO: docstring to finish
 
 # ---------------------------------------------------------------------------
 #   Copyright (C) 2025 <Alexandre Vaudrey>                                  |
@@ -25,6 +45,12 @@ Author: alexandre.vaudrey@pm.me
 #   You should have received a copy of the GNU General Public License       |
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.   |
 # --------------------------------------------------------------------------|
+
+# NOTE: List of possible/future improvements
+# - Taking into account the humidity of air in the calculation of its density.
+# - Consider an energy efficiency for the electric motor, that could be a class
+# function, given for instance as an empirical function of the torque and speed
+# - The vehicle rolling coefficient must be a function of its speed.
 
 import csv
 import datetime as dt
@@ -385,7 +411,7 @@ class LinearContinuousGearbox:
     """
 
     def __init__(self):
-        # Energy efficiency
+        # Energy efficiency, at 100% by default
         self.energy_efficiency = 1.
         # Maximum and minimum values of the gear ratio
         self.minimum_gear_ratio = 1.
@@ -593,7 +619,7 @@ class LinearContinuousGearbox:
         """
         # Inlet
         self._outlet_torque = torque
-        # Outlet
+        # Outlet torque, taking into account the gearbox efficiency
         self._inlet_torque = torque * self.gear_ratio() / self.energy_efficiency
 
     outlet_torque = property(fget=get_outlet_torque, fset=set_outlet_torque)
@@ -617,7 +643,6 @@ class LinearContinuousGearbox:
 
 
 class SynchronousElectricMotor:
-    # WARNING:  energy efficiency has not been implemented anymore.
     """
     Synchronous electric motor used for the vehicle propulsion, which is able
     to provide a constant torque from zero speed to base (speed|frequency). Once
@@ -635,6 +660,9 @@ class SynchronousElectricMotor:
     base_speed : float
         Rotational speed, in rad/s, beyond which the maximum power is a
         constant and the corresponding torque starts to decrease.
+    energy_efficiency : float
+        Ratio of the mechanical power produced by the electrical one consumed,
+        dimensionless.
     maximum_frequency : float
         Maximum value of the motor rotational frequency, in rpm.
     maximum_speed : float
@@ -661,6 +689,8 @@ class SynchronousElectricMotor:
         self._maximum_speed = rot_speed_from_rpm(2500.)
         self._maximum_torque = 2500.
         self._maximum_power = 2500. * rot_speed_from_rpm(800.)
+        # Efficiency is a constant value by default
+        self.energy_efficiency = 0.9
 
     def get_base_speed(self):
         """ Rotational speed, in rad/s, beyond whch the maximum power is a
@@ -1082,7 +1112,11 @@ class VehicleDynamicsModel:
                     # And the corresponding acceleration is recalculated
                     acceleration = (speed_limit - speed) / self.time_step
                     # So the corresponding actual gearbox outlet torque
-                    self.gearbox.outlet_torque = self.vehicle.motive_force(acceleration, slope, speed, **kwargs) * self.vehicle.wheels_radius
+                    self.gearbox.outlet_torque = self.vehicle.motive_force(acceleration,
+                                                                           slope,
+                                                                           speed,
+                                                                           **kwargs) * \
+                        self.vehicle.wheels_radius
                 # If not
                 else:
                     speed = next_speed
@@ -1141,7 +1175,13 @@ class VehicleDynamicsModel:
                 self.results['speed'].append(speed)
                 self.results['acceleration'].append(acceleration)
                 self.results['time'].append(time)
-                self.results['power'].append(min(self.motor.maximum_power, float(self.gearbox.inlet_power())))
+                # The power consumed is the one at the inlet of the electric
+                # motor, so the use of its efficiency
+                # WARNING: this calculation is really suspicious, gearbox inlet
+                # power must be enough
+                self.results['power'].append(min(self.motor.maximum_power,
+                                                 float(self.gearbox.inlet_power())) / \
+                    self.motor.energy_efficiency)
                 self.results['motor_torque'].append(self.gearbox.inlet_torque)
                 self.results['motor_speed'].append(self.gearbox.inlet_speed)
 

@@ -37,14 +37,14 @@ import scipy.optimize as opt
 M_AIR = 29.
 
 
-def rspeed(rot_freq):
+def rot_speed_from_rpm(rot_freq):
     """ Conversion of rotational frequency, in rpm, into angular speed,
     in rad/s.
     """
     return rot_freq * np.pi / 30.
 
 
-def rfreq(rot_speed):
+def rot_rpm_from_speed(rot_speed):
     """ Conversion of angular speed, in rad/s, into rotational frequency,
     in rpm.
     """
@@ -393,14 +393,14 @@ class LinearContinuousGearbox:
         # Default max inlet rotational frequency is 3000 rpm, value needed to
         # compute the gear ratio
         self._maximum_inlet_frequency = 3e3
-        self._maximum_inlet_speed = rspeed(3e3)
+        self._maximum_inlet_speed = rot_speed_from_rpm(3e3)
         # Default inlet rotational frequency is the maximum one, which leads to
         # the maximum transmission ratio
         self._inlet_frequency = 3e3
-        self._inlet_speed = rspeed(3e3)
+        self._inlet_speed = rot_speed_from_rpm(3e3)
         # Resulting outlet rotational speed and frequency
         self._outlet_frequency = 3e3 * 2.
-        self._outlet_speed = rspeed(3e3) * 2.
+        self._outlet_speed = rot_speed_from_rpm(3e3) * 2.
         # Inlet torque
         self._inlet_torque = 100.
         # Outlet torque obtained in considering default values of the energy
@@ -418,7 +418,7 @@ class LinearContinuousGearbox:
         """ Set of the maximum inlet rotational speed, in rad/s.
         """
         self._maximum_inlet_speed = speed
-        self._maximum_inlet_frequency = rfreq(speed)
+        self._maximum_inlet_frequency = rot_rpm_from_speed(speed)
 
     maximum_inlet_speed = property(fget=get_maximum_inlet_speed,
                                    fset=set_maximum_inlet_speed)
@@ -432,7 +432,7 @@ class LinearContinuousGearbox:
         """ Set of the maximum inlet rotational frequency, in rpm.
         """
         self._maximum_inlet_frequency = freq
-        self._maximum_inlet_speed = rspeed(freq)
+        self._maximum_inlet_speed = rot_speed_from_rpm(freq)
 
     maximum_inlet_frequency = property(fget=get_maximum_inlet_frequency,
                                        fset=set_maximum_inlet_frequency)
@@ -497,12 +497,12 @@ class LinearContinuousGearbox:
         """
         # Inlet
         self._inlet_frequency = freq
-        self._inlet_speed = rspeed(freq)
+        self._inlet_speed = rot_speed_from_rpm(freq)
         # Gear ratio
         gear_ratio = self.__get_gear_ratio(inlet_frequency=freq)
         # Outlet
         self._outlet_frequency = gear_ratio * freq
-        self._outlet_speed = gear_ratio * rspeed(freq)
+        self._outlet_speed = gear_ratio * rot_speed_from_rpm(freq)
 
     inlet_frequency = property(fget=get_inlet_frequency,
                                fset=set_inlet_frequency)
@@ -517,11 +517,11 @@ class LinearContinuousGearbox:
         """
         # Inlet
         self._inlet_speed = speed
-        self._inlet_frequency = rfreq(speed)
+        self._inlet_frequency = rot_rpm_from_speed(speed)
         # Gear ratio
         gear_ratio = self.__get_gear_ratio(inlet_speed=speed)
         # Outlet
-        self._outlet_frequency = gear_ratio * rfreq(speed)
+        self._outlet_frequency = gear_ratio * rot_rpm_from_speed(speed)
         self._outlet_speed = gear_ratio * speed
 
     inlet_speed = property(fget=get_inlet_speed, fset=set_inlet_speed)
@@ -536,12 +536,12 @@ class LinearContinuousGearbox:
         """
         # Outlet
         self._outlet_frequency = freq
-        self._outlet_speed = rspeed(freq)
+        self._outlet_speed = rot_speed_from_rpm(freq)
         # Gear ratio
         gear_ratio = self.__get_gear_ratio(outlet_frequency=freq)
         # Inlet
         self._inlet_frequency = freq / gear_ratio
-        self._inlet_speed = rspeed(freq) / gear_ratio
+        self._inlet_speed = rot_speed_from_rpm(freq) / gear_ratio
 
     outlet_frequency = property(fget=get_outlet_frequency,
                                 fset=set_outlet_frequency)
@@ -556,11 +556,11 @@ class LinearContinuousGearbox:
         """
         # Outlet
         self._outlet_speed = speed
-        self._outlet_frequency = rfreq(speed)
+        self._outlet_frequency = rot_rpm_from_speed(speed)
         # Gear ratio
         gear_ratio = self.__get_gear_ratio(outlet_speed=speed)
         # Inlet
-        self._inlet_frequency = rfreq(speed) / gear_ratio
+        self._inlet_frequency = rot_rpm_from_speed(speed) / gear_ratio
         self._inlet_speed = speed / gear_ratio
 
     outlet_speed = property(fget=get_outlet_speed, fset=set_outlet_speed)
@@ -617,6 +617,7 @@ class LinearContinuousGearbox:
 
 
 class SynchronousElectricMotor:
+    # WARNING:  energy efficiency has not been implemented anymore.
     """
     Synchronous electric motor used for the vehicle propulsion, which is able
     to provide a constant torque from zero speed to base (speed|frequency). Once
@@ -655,11 +656,11 @@ class SynchronousElectricMotor:
     def __init__(self):
         # Base and maximum (frequency|speed)
         self._base_frequency = 800.
-        self._base_speed = rspeed(800.)
+        self._base_speed = rot_speed_from_rpm(800.)
         self._maximum_frequency = 2500.
-        self._maximum_speed = rspeed(2500.)
+        self._maximum_speed = rot_speed_from_rpm(2500.)
         self._maximum_torque = 2500.
-        self._maximum_power = 2500. * rspeed(800.)
+        self._maximum_power = 2500. * rot_speed_from_rpm(800.)
 
     def get_base_speed(self):
         """ Rotational speed, in rad/s, beyond whch the maximum power is a

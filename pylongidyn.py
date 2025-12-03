@@ -36,19 +36,20 @@ import scipy.optimize as opt
 # Molecular weight of air, in g/mol
 M_AIR = 29.
 
-# Functions used for the conversion of rotational frequency, in rpm, into
-# rotational speed, in rad/s, and vice versa.
+
 def rspeed(rot_freq):
     """ Conversion of rotational frequency, in rpm, into angular speed,
     in rad/s.
     """
     return rot_freq * np.pi / 30.
 
+
 def rfreq(rot_speed):
     """ Conversion of angular speed, in rad/s, into rotational frequency,
     in rpm.
     """
     return rot_speed * 30. / np.pi
+
 
 class AmbientAir:
     """
@@ -77,8 +78,7 @@ class AmbientAir:
         """
         # Specific gas constant of air
         gas_constant = R / (M_AIR * 1e-3)
-        return self.pressure / (gas_constant * (self.temperature + \
-            zero_Celsius))
+        return self.pressure / (gas_constant * (self.temperature + zero_Celsius))
 
 
 class Road:
@@ -173,14 +173,14 @@ class Road:
             self.__is_a_data_file_loaded = True
         except FileNotFoundError:
             print("This file does not exist")
-        # Extraction of the data, in three lists. To avoid any problem of 
+        # Extraction of the data, in three lists. To avoid any problem of
         # division by zero, any line containing a zero speed is avoided
-        mask = (data[:,2] != 0)
+        mask = (data[:, 2] != 0)
         # Distance as an array
-        self.__distance_from_start = data[:,0][mask]
+        self.__distance_from_start = data[:, 0][mask]
         # Transformation of altitude into relative elevation regarding to
         # altitude starting point
-        altitude = data[:,1][mask]
+        altitude = data[:, 1][mask]
         self.__initial_altitude = altitude[0]
         self.__elevation_from_start = altitude - altitude[0]
         # If needed, the elevation is regularized taking into account the
@@ -189,15 +189,11 @@ class Road:
             self.__elevation_from_start = self._slope_regularization()
         # Road slope
         self.__road_slope = np.array([float(
-            (self._Road__elevation_from_start[i+1] - \
-                self._Road__elevation_from_start[i]) / \
-            (self._Road__distance_from_start[i+1] - \
-                self._Road__distance_from_start[i])) \
-        for i in range(len(self._Road__distance_from_start)-1)])
+            (self._Road__elevation_from_start[i + 1] - self._Road__elevation_from_start[i]) / (self._Road__distance_from_start[i + 1] - self._Road__distance_from_start[i])) for i in range(len(self._Road__distance_from_start) - 1)])
         # Dirty trick in order to give the same length to both arrays
         self.__road_slope = np.append(self.__road_slope, self.__road_slope[-1])
         # Speed limit is converted into m/s
-        self.__speed_limit = 1/3.6 * data[:,2][mask]
+        self.__speed_limit = 1 / 3.6 * data[:, 2][mask]
 
     def export_regularized_profile(self):
         """ Road profile with regularized slope is exported to another csv file
@@ -209,7 +205,7 @@ class Road:
                 new_file_name = self.__data_file_name[:-4] + '-regularized.csv'
                 with open(new_file_name, "w", newline="", encoding="utf-8") as file:
                     write = csv.writer(file)
-                    write.writerow(["distance_m","elevation_m","speed_limit_kmh"])
+                    write.writerow(["distance_m", "elevation_m", "speed_limit_kmh"])
                     for distance, altitude, speed in zip(self.__distance_from_start,
                                                          self.__elevation_from_start,
                                                          self.__speed_limit):
@@ -239,8 +235,7 @@ class Road:
         maximum speed authorized."""
         # Travel time along each piece of the road, in seconds
         if len(self.__distance_from_start) != 1:
-            durations = (self.__distance_from_start[1:] - \
-                self.__distance_from_start[:-1]) / self.__speed_limit[:-1]
+            durations = (self.__distance_from_start[1:] - self.__distance_from_start[:-1]) / self.__speed_limit[:-1]
         else:
             durations = self.__distance_from_start / self.__speed_limit
         # Total duration in seconds
@@ -260,23 +255,19 @@ class Road:
         z_old = self.__elevation_from_start
         z_new = [0.]
         # Calculation of the initial slope
-        slope_old = [(z_old[i+1]-z_old[i])/(distance[i+1] - \
-            distance[i]) for i in range(len(distance)-1)]
+        slope_old = [(z_old[i + 1] - z_old[i]) / (distance[i + 1] - distance[i]) for i in range(len(distance) - 1)]
         # And reconstruction of the elevation considering the limited slope
         # value
-        for i in range(len(distance)-1):
+        for i in range(len(distance) - 1):
             # We modify the road elevation only if the slope absolute value is
             # larger than the maximum one authorized
             if abs(slope_old[i]) > self.max_slope:
                 if slope_old[i] > 0:
-                    z_new.append(float(z_new[-1] + (distance[i + 1] - \
-                        distance[i]) * self.max_slope))
+                    z_new.append(float(z_new[-1] + (distance[i + 1] - distance[i]) * self.max_slope))
                 else:
-                    z_new.append(float(z_new[-1] - (distance[i + 1] - \
-                        distance[i]) * self.max_slope))
+                    z_new.append(float(z_new[-1] - (distance[i + 1] - distance[i]) * self.max_slope))
             else:
-                z_new.append(float(z_new[-1] + (distance[i + 1] - \
-                    distance[i]) * slope_old[i]))
+                z_new.append(float(z_new[-1] + (distance[i + 1] - distance[i]) * slope_old[i]))
         # And the elevation values can now be updated
         return np.array(z_new) + self.__initial_altitude
 
@@ -318,8 +309,7 @@ class Road:
         i = self.__where(distance)
         # Percentage of the distance within the concerned piece of road
         elevation = distance - self.__distance_from_start[i]
-        return float(elevation * self.slope(distance) + \
-            self.__elevation_from_start[i])
+        return float(elevation * self.slope(distance) + self.__elevation_from_start[i])
 
     def speed_statistics(self):
         """ Reply with a dictionary whom keys are the different levels of
@@ -328,7 +318,7 @@ class Road:
         limits.
         """
         speed_statistics = {}
-        for i in range(len(self.__speed_limit)-1):
+        for i in range(len(self.__speed_limit) - 1):
             # Calculation of each road segment length
             start = self.__distance_from_start[i]
             end = self.__distance_from_start[i + 1]
@@ -349,7 +339,7 @@ class LinearContinuousGearbox:
     rotational speed into the driven wheels ones. The gear ratio, i.e. the
     ratio of the output to input rotational speed linearly increases from
     a minimum to a maximum value when the entering rotational speed increases
-    from zero to its maximum value. Resulting mechanical torque is then 
+    from zero to its maximum value. Resulting mechanical torque is then
     computed considering this gear ratio and the energy efficiency of the
     gearbox.
     ...
@@ -639,17 +629,17 @@ class SynchronousElectricMotor:
     Attributes
     ----------
     base_frequency : float
-        Rotational frequency, in rpm, beyond which the maximum power is a 
+        Rotational frequency, in rpm, beyond which the maximum power is a
         constant and the corresponding torque starts to decrease.
     base_speed : float
-        Rotational speed, in rad/s, beyond which the maximum power is a 
+        Rotational speed, in rad/s, beyond which the maximum power is a
         constant and the corresponding torque starts to decrease.
     maximum_frequency : float
         Maximum value of the motor rotational frequency, in rpm.
     maximum_speed : float
         Maximum value of the motor rotational speed, in rad/s.
     maximum_power : float
-        Maximum mechanical power the motor is able to provided once its 
+        Maximum mechanical power the motor is able to provided once its
         (speed|frequency) is higher than the base one, in W.
     maximum_torque : float
         Maximum value of the mechanical torque the motor is able to provide
@@ -665,14 +655,14 @@ class SynchronousElectricMotor:
     def __init__(self):
         # Base and maximum (frequency|speed)
         self._base_frequency = 800.
-        self._base_speed = 800. * np.pi/30
+        self._base_speed = rspeed(800.)
         self._maximum_frequency = 2500.
-        self._maximum_speed = 2500. * np.pi/30
+        self._maximum_speed = rspeed(2500.)
         self._maximum_torque = 2500.
-        self._maximum_power = 2500. * 800. * np.pi/30
+        self._maximum_power = 2500. * rspeed(800.)
 
     def get_base_speed(self):
-        """ Rotational speed, in rad/s, beyond which the maximum power is a 
+        """ Rotational speed, in rad/s, beyond whch the maximum power is a
         constant and the corresponding torque starts to decrease.
         """
         return self._base_speed
@@ -758,7 +748,7 @@ class SynchronousElectricMotor:
     maximum_torque = property(fget=get_maximum_torque, fset=set_maximum_torque)
 
     def get_maximum_power(self):
-        """ Maximum mechanical power the motor is able to provided once its 
+        """ Maximum mechanical power the motor is able to provided once its
         (speed|frequency) is higher than the base one, in W.
         """
         return self._maximum_power
@@ -779,9 +769,7 @@ class SynchronousElectricMotor:
         (speed|frequency), in N.m.
         """
         # Entered arguments are either the speed or the frequency
-        allowed_args = {
-                'frequency': float,
-                'speed': float}
+        allowed_args = {'frequency': float, 'speed': float}
 
         # Check if input argument is authorized
         for key, value in kwargs.items():
@@ -814,7 +802,7 @@ class Vehicle:
     mass : float
         Gravitational mass of the vehicle in kg.
     rotating_mass_correction_coefficient : float
-        Correction coefficient, dimensionless, accounting for the equivalent 
+        Correction coefficient, dimensionless, accounting for the equivalent
         mass increase due to the angular moment of the rotating components.
     wheels_radius : float
         Radius of the vehicle wheels, in m.
@@ -851,7 +839,7 @@ class Vehicle:
         against resistance forces.
     rolling_resistance(slope, **rolling_coefficient) : float
         Resistance force due to the rolling of tires on the road and computed
-        in taking into account the road slope, in N. A 'rolling_coefficient' 
+        in taking into account the road slope, in N. A 'rolling_coefficient'
         can be used as argument if necessary.
     normal_weight() : float
         Projection of the vehicle weight along the direction normal to the road,
@@ -934,7 +922,7 @@ class Vehicle:
         def f_to_solve(speed):
             return self.resistance_force(slope, speed, **kwargs) - force
         # And solving process starting from an initial zero speed
-        sol = opt.root_scalar(f_to_solve, method='secant', x0 = 0.)
+        sol = opt.root_scalar(f_to_solve, method='secant', x0=0.)
         return float(sol.root)
 
     def power_to_maximum_speed(self, power, slope, **kwargs):
@@ -1007,9 +995,9 @@ class VehicleDynamicsModel:
                  electric_motor: SynchronousElectricMotor,
                  road: Road,
                  vehicle: Vehicle,
-                 average_acceleration = 1.,
-                 average_deceleration = 1.,
-                 time_step = 1.):
+                 average_acceleration=1.,
+                 average_deceleration=1.,
+                 time_step=1.):
         # Components of the whole model
         self.gearbox = gearbox
         self.motor = electric_motor
@@ -1026,7 +1014,7 @@ class VehicleDynamicsModel:
     def consumed_energy(self, regenerative_braking=True):
         """ Calculation of the total energy consumed by the vehicle, in Wh, to
         achieve the trip. Whether the option 'regenerative_braking' is set to
-        True or False, the negative power values 
+        True or False, the negative power values
         """
         if not self.results:
             return 0.
@@ -1039,8 +1027,7 @@ class VehicleDynamicsModel:
             # of power, i.e. the ones actually consumed by vehicle, are taken
             # into account
             power = np.array(self.results['power']).clip(min=0.)
-        return float(np.trapezoid(power, x=self.results['time']) * \
-            self.time_step / 3.6e3)
+        return float(np.trapezoid(power, x=self.results['time']) * self.time_step / 3.6e3)
 
     def run_calculation(self, initial_speed=0., **kwargs):
         """ Run the whole vehicle dynamics model. Initial speed must be entered
@@ -1066,9 +1053,7 @@ class VehicleDynamicsModel:
             if speed < speed_limit:
                 # Such an acceleration requires a torque, firstly calculated at
                 # the wheels, i.e. at the gearbox outlet
-                self.gearbox.outlet_torque = self.vehicle.motive_force(
-                        self.average_acceleration, slope, speed, **kwargs) * \
-                    self.vehicle.wheels_radius
+                self.gearbox.outlet_torque = self.vehicle.motive_force(self.average_acceleration, slope, speed, **kwargs) * self.vehicle.wheels_radius
                 # The resulting gearbox inlet torque must be compared with the
                 # maximum one the electric motor can provide
                 motor_max_torque = self.motor.maximum_operating_torque(
@@ -1096,9 +1081,7 @@ class VehicleDynamicsModel:
                     # And the corresponding acceleration is recalculated
                     acceleration = (speed_limit - speed) / self.time_step
                     # So the corresponding actual gearbox outlet torque
-                    self.gearbox.outlet_torque = self.vehicle.motive_force(
-                            acceleration, slope, speed, **kwargs) * \
-                        self.vehicle.wheels_radius
+                    self.gearbox.outlet_torque = self.vehicle.motive_force(acceleration, slope, speed, **kwargs) * self.vehicle.wheels_radius
                 # If not
                 else:
                     speed = next_speed
@@ -1157,9 +1140,7 @@ class VehicleDynamicsModel:
                 self.results['speed'].append(speed)
                 self.results['acceleration'].append(acceleration)
                 self.results['time'].append(time)
-                self.results['power'].append(min(self.motor.maximum_power,
-                                                 float(
-                                                 self.gearbox.inlet_power())))
+                self.results['power'].append(min(self.motor.maximum_power, float(self.gearbox.inlet_power())))
                 self.results['motor_torque'].append(self.gearbox.inlet_torque)
                 self.results['motor_speed'].append(self.gearbox.inlet_speed)
 
@@ -1179,6 +1160,7 @@ class VehicleDynamicsModel:
         if not self.results:
             return 0.
         return self.results['time'][-1]
+
 
 if __name__ == '__main__':
     pass

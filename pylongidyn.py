@@ -1,6 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+# TODO: finish this docstring.
+
 """
 pylongidyn: Longitudinal Vehicle Dynamics Modeling in Python
 ============================================================
@@ -14,10 +16,14 @@ Main Components
 ---------------
 - rot_rpm_from_speed, rot_speed_from_rpm : Conversion utilities between rpm
 and rad/s.
-- AmbientAir : Ambient air properties and density calculation.
+- AmbientAir : Ambient air properties and density calculation, useful for drag
+force calculation.
 - Road : Road profile handling (slopes, elevations, speed limits).
-- LinearContinuousGearbox : Gearbox model with continuous gear ratio.
+- LinearContinuousGearbox : Gearbox model with continuously variating gear
+ratio.
 - SynchronousElectricMotor : Electric motor model with torque/power curves.
+- Vehicle:
+- VehicleDynamicsModel :
 
 Notes
 -----
@@ -239,6 +245,14 @@ class Road:
                                         f"{altitude:.2f}",
                                         f"{(speed * 3.6):.1f}"])
 
+    def limit_speed_to_a_maximum_value(self, max_speed):
+        """ A useful method when you want to reduce the maximum permitted speed
+        to a limit value 'max_speed' (in km/h) along the entire route.
+        """
+        self.__speed_limit = np.clip(self.__speed_limit,
+                                     a_min=None,
+                                     a_max=max_speed / 3.6)
+
     def road_length(self):
         """ Total length of the road, in m. """
         return float(self.__distance_from_start[-1])
@@ -409,6 +423,8 @@ class LinearContinuousGearbox:
     outlet_power() : float
         Mechanical power provided at the gearbox outlet, in W.
     """
+    # FIXME: The energy efficiency seems to have no effect of the final energy
+    # consumed along the whole calculation.
 
     def __init__(self):
         # Energy efficiency, at 100% by default
@@ -643,6 +659,7 @@ class LinearContinuousGearbox:
 
 
 class SynchronousElectricMotor:
+    # WARNING:  energy efficiency has not been implemented anymore.
     """
     Synchronous electric motor used for the vehicle propulsion, which is able
     to provide a constant torque from zero speed to base (speed|frequency). Once
@@ -669,7 +686,8 @@ class SynchronousElectricMotor:
         Maximum value of the motor rotational speed, in rad/s.
     maximum_power : float
         Maximum mechanical power the motor is able to provided once its
-        (speed|frequency) is higher than the base one, in W.
+        (speed|frequency) is higher than the base one, in W. This power is lower
+        thant the electrical one it can consume.
     maximum_torque : float
         Maximum value of the mechanical torque the motor is able to provide
         when its (speed|frequency) is lower than the base one, in N.m.
@@ -1086,7 +1104,7 @@ class VehicleDynamicsModel:
                 # the wheels, i.e. at the gearbox outlet
                 self.gearbox.outlet_torque = self.vehicle.motive_force(self.average_acceleration, slope, speed, **kwargs) * self.vehicle.wheels_radius
                 # The resulting gearbox inlet torque must be compared with the
-                # maximum one the electric motor can provide
+                # maximum one the electric motor can provide at the given speed
                 motor_max_torque = self.motor.maximum_operating_torque(
                     speed=self.gearbox.inlet_speed)
                 # If the actual torque is lower than the maximum one

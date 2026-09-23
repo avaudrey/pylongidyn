@@ -1100,6 +1100,12 @@ class Vehicle:
         return self.mass * g
 
 
+class VehicleStalledError(RuntimeError):
+    """Raised when the vehicle cannot move forward anymore, typically because
+    the motor torque is too low to climb the road slope.
+    """
+
+
 class VehicleDynamicsModel:
     """
     Simulation of the longitudinal dynamics of a vehicle following a road
@@ -1329,6 +1335,22 @@ class VehicleDynamicsModel:
                     )
                     # Actual speed
                     speed += acceleration * self.time_step
+                    # If the speed is no longer positive, the vehicle cannot move
+            # forward: this happens when the motive force available is lower
+            # than the resistive forces, typically on a too steep slope
+            if speed <= 0.0:
+                available_force = (
+                    self.gearbox.outlet_torque / self.vehicle.wheels_radius
+                )
+                resistive_force = self.vehicle.resistance_force(slope, 0.0, **kwargs)
+                raise VehicleStalledError(
+                    f"The vehicle stalls at {distance:.0f} m from the start "
+                    f"(t = {time:.0f} s), on a {100 * slope:.1f} % slope: "
+                    f"maximum motive force {available_force:.0f} N, resistive "
+                    f"force at zero speed {resistive_force:.0f} N. Check the "
+                    "road profile (or use its regularization) or the motor "
+                    "and gearbox sizing."
+                )
             # Braking: whatever the branch above, a negative torque at the
             # wheels is shared between the electric motor (regenerative
             # braking, limited by its maximum torque at the current speed) and

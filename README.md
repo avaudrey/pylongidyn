@@ -239,6 +239,7 @@ np.savetxt("power_profile.csv",
 - No auxiliary power consumption.
 - If the vehicle cannot climb a slope (motor torque too low), the simulation never ends: the road profile and the motor sizing must be checked beforehand.
 - The energy source (battery, fuel cell) is not modelled: the output is the electrical power demanded at the motor terminals.
+- If the vehicle cannot climb a slope, a `VehicleStalledError` is raised, giving the location and the forces involved.
 
 ## Roadmap
 - Anticipation of speed-limit decreases and stops, with a braking envelope computed along the road.
